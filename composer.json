@@ -1,0 +1,43 @@
+{
+    "name": "trigger-engage/laravel",
+    "description": "Laravel SDK for trigger-engage — event-driven messaging automations (open-source Customer.io alternative).",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "trigger-engage", "messaging", "automation", "customer-io"],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0|^12.0",
+        "illuminate/http": "^10.0|^11.0|^12.0",
+        "illuminate/bus": "^10.0|^11.0|^12.0",
+        "illuminate/queue": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "TriggerEngage\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TriggerEngage\\Laravel\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "TriggerEngage\\Laravel\\TriggerEngageServiceProvider"
+            ],
+            "aliases": {
+                "TriggerEngage": "TriggerEngage\\Laravel\\Facades\\TriggerEngage"
+            }
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
