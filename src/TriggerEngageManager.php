@@ -2,37 +2,69 @@
 
 namespace TriggerEngage\Laravel;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use TriggerEngage\Laravel\Contracts\Dispatcher;
 use TriggerEngage\Laravel\Jobs\SendToTriggerEngage;
 
 class TriggerEngageManager implements Dispatcher
 {
-    public function __construct(protected array $config)
-    {
-    }
+    public function __construct(protected array $config) {}
 
-    public function identify(string $personId, array $attributes = []): void
+    public function identify(string $personId, array $attributes = [], ?string $anonymousId = null): void
     {
         $this->dispatch([
             'type' => 'identify',
             'person_id' => $personId,
             'attributes' => $attributes,
+            'anonymous_id' => $anonymousId,
             'idempotency_key' => (string) Str::ulid(),
             'occurred_at' => now()->toIso8601String(),
         ]);
     }
 
-    public function event(string $name, array $data = [], ?string $person = null): void
+    public function setProperties(string $personId, array $properties): void
     {
+        $this->dispatch([
+            'type' => 'properties',
+            'person_id' => $personId,
+            'properties' => $properties,
+            'idempotency_key' => (string) Str::ulid(),
+            'occurred_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function event(string $name, array $data = [], ?string $person = null, ?string $anonymousId = null): void
+    {
+        if (blank($person) && blank($anonymousId)) {
+            if ($this->enabled()) {
+                Log::warning('trigger-engage: event skipped because a person id or anonymous id is required', [
+                    'event' => $name,
+                ]);
+            }
+
+            return;
+        }
+
         $this->dispatch([
             'type' => 'event',
             'name' => $name,
             'person_id' => $person,
+            'anonymous_id' => $anonymousId,
             'data' => $data,
             'idempotency_key' => (string) Str::ulid(),
             'occurred_at' => now()->toIso8601String(),
         ]);
+    }
+
+    public function addToSegment(string $segmentId, string $personId): void
+    {
+        $this->dispatch(['type' => 'segment_add', 'segment_id' => $segmentId, 'person_id' => $personId]);
+    }
+
+    public function removeFromSegment(string $segmentId, string $personId): void
+    {
+        $this->dispatch(['type' => 'segment_remove', 'segment_id' => $segmentId, 'person_id' => $personId]);
     }
 
     public function enabled(): bool

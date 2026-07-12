@@ -14,14 +14,47 @@ class TriggerEngageFake implements Dispatcher
     /** @var array<int, array{person_id: string, attributes: array}> */
     protected array $identifies = [];
 
-    public function identify(string $personId, array $attributes = []): void
+    /** @var array<int, array{action: string, segment_id: string, person_id: string}> */
+    protected array $segmentChanges = [];
+
+    public function identify(string $personId, array $attributes = [], ?string $anonymousId = null): void
     {
-        $this->identifies[] = ['person_id' => $personId, 'attributes' => $attributes];
+        $this->identifies[] = ['person_id' => $personId, 'attributes' => $attributes, 'anonymous_id' => $anonymousId];
     }
 
-    public function event(string $name, array $data = [], ?string $person = null): void
+    public function setProperties(string $personId, array $properties): void
     {
-        $this->events[] = ['name' => $name, 'data' => $data, 'person' => $person];
+        $this->identifies[] = ['person_id' => $personId, 'attributes' => $properties];
+    }
+
+    public function assertPropertiesSet(string $personId, ?Closure $callback = null): void
+    {
+        $this->assertIdentified($personId, $callback);
+    }
+
+    public function event(string $name, array $data = [], ?string $person = null, ?string $anonymousId = null): void
+    {
+        $this->events[] = ['name' => $name, 'data' => $data, 'person' => $person, 'anonymous_id' => $anonymousId];
+    }
+
+    public function addToSegment(string $segmentId, string $personId): void
+    {
+        $this->segmentChanges[] = ['action' => 'add', 'segment_id' => $segmentId, 'person_id' => $personId];
+    }
+
+    public function removeFromSegment(string $segmentId, string $personId): void
+    {
+        $this->segmentChanges[] = ['action' => 'remove', 'segment_id' => $segmentId, 'person_id' => $personId];
+    }
+
+    public function assertAddedToSegment(string $segmentId, string $personId): void
+    {
+        Assert::assertContains(['action' => 'add', 'segment_id' => $segmentId, 'person_id' => $personId], $this->segmentChanges);
+    }
+
+    public function assertRemovedFromSegment(string $segmentId, string $personId): void
+    {
+        Assert::assertContains(['action' => 'remove', 'segment_id' => $segmentId, 'person_id' => $personId], $this->segmentChanges);
     }
 
     public function assertEventSent(string $name, ?Closure $callback = null): void
@@ -68,6 +101,7 @@ class TriggerEngageFake implements Dispatcher
     {
         Assert::assertEmpty($this->events, 'Events were sent unexpectedly.');
         Assert::assertEmpty($this->identifies, 'People were identified unexpectedly.');
+        Assert::assertEmpty($this->segmentChanges, 'Segment memberships were changed unexpectedly.');
     }
 
     /** @return array<int, array{name: string, data: array, person: string|null}> */

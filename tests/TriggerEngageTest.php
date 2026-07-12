@@ -4,6 +4,7 @@ namespace TriggerEngage\Laravel\Tests;
 
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use TriggerEngage\Laravel\Facades\TriggerEngage;
 use TriggerEngage\Laravel\Jobs\SendToTriggerEngage;
 
@@ -35,6 +36,19 @@ class TriggerEngageTest extends TestCase
                 && $job->payload['person_id'] === 'user-42'
                 && $job->payload['attributes'] === ['email' => 'ada@example.com'];
         });
+    }
+
+    public function test_properties_dispatch_and_fake_assertion(): void
+    {
+        Bus::fake();
+        TriggerEngage::setProperties('user-42', ['appointments' => 3, 'plan' => 'wellness']);
+        Bus::assertDispatched(SendToTriggerEngage::class, fn ($job) => $job->payload['type'] === 'properties'
+            && $job->payload['person_id'] === 'user-42'
+            && $job->payload['properties']['appointments'] === 3);
+
+        $fake = TriggerEngage::fake();
+        TriggerEngage::setProperties('user-42', ['appointments' => 3]);
+        $fake->assertPropertiesSet('user-42', fn ($properties) => $properties['appointments'] === 3);
     }
 
     public function test_sync_mode_sends_http_request_with_combined_credentials(): void
@@ -77,6 +91,18 @@ class TriggerEngageTest extends TestCase
         $this->assertTrue(true); // reaching here means the exception was swallowed
     }
 
+    public function test_event_without_a_person_is_logged_and_skipped(): void
+    {
+        config()->set('trigger-engage.dispatch', 'sync');
+        Http::fake();
+        Log::spy();
+
+        TriggerEngage::event('customer_sign_up');
+
+        Http::assertNothingSent();
+        Log::shouldHaveReceived('warning')->once();
+    }
+
     public function test_fake_records_and_asserts(): void
     {
         $fake = TriggerEngage::fake();
@@ -88,5 +114,20 @@ class TriggerEngageTest extends TestCase
         $fake->assertEventSent('customer_sign_up', fn ($data, $person) => $person === 'user-42');
         $fake->assertEventSentTimes('customer_sign_up', 1);
         $fake->assertEventNotSent('wallet_funded');
+    }
+
+    public function test_segment_membership_dispatches_and_fake_can_assert_it(): void
+    {
+        Bus::fake();
+        TriggerEngage::addToSegment('seg_vip', 'user-42');
+        TriggerEngage::removeFromSegment('seg_vip', 'user-42');
+        Bus::assertDispatched(SendToTriggerEngage::class, fn ($job) => $job->payload['type'] === 'segment_add' && $job->payload['segment_id'] === 'seg_vip');
+        Bus::assertDispatched(SendToTriggerEngage::class, fn ($job) => $job->payload['type'] === 'segment_remove');
+
+        $fake = TriggerEngage::fake();
+        TriggerEngage::addToSegment('seg_vip', 'user-42');
+        TriggerEngage::removeFromSegment('seg_vip', 'user-42');
+        $fake->assertAddedToSegment('seg_vip', 'user-42');
+        $fake->assertRemovedFromSegment('seg_vip', 'user-42');
     }
 }

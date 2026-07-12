@@ -12,9 +12,7 @@ use Illuminate\Support\Facades\Log;
  */
 class Client
 {
-    public function __construct(protected array $config)
-    {
-    }
+    public function __construct(protected array $config) {}
 
     public function send(array $payload): void
     {
@@ -22,18 +20,26 @@ class Client
             $response = match ($payload['type']) {
                 'identify' => $this->request()->put(
                     '/api/v1/people/'.rawurlencode($payload['person_id']),
-                    [
+                    array_filter([
                         'attributes' => $payload['attributes'],
+                        'anonymous_id' => $payload['anonymous_id'] ?? null,
                         'idempotency_key' => $payload['idempotency_key'],
-                    ]
+                    ], fn ($value) => $value !== null)
                 ),
-                'event' => $this->request()->post('/api/v1/events', [
+                'properties' => $this->request()->patch(
+                    '/api/v1/people/'.rawurlencode($payload['person_id']).'/properties',
+                    ['properties' => $payload['properties']]
+                ),
+                'event' => $this->request()->post('/api/v1/events', array_filter([
                     'name' => $payload['name'],
                     'person_id' => $payload['person_id'],
+                    'anonymous_id' => $payload['anonymous_id'] ?? null,
                     'data' => $payload['data'],
                     'idempotency_key' => $payload['idempotency_key'],
                     'occurred_at' => $payload['occurred_at'],
-                ]),
+                ], fn ($value) => $value !== null)),
+                'segment_add' => $this->request()->put('/api/v1/segments/'.rawurlencode($payload['segment_id']).'/people/'.rawurlencode($payload['person_id'])),
+                'segment_remove' => $this->request()->delete('/api/v1/segments/'.rawurlencode($payload['segment_id']).'/people/'.rawurlencode($payload['person_id'])),
                 default => null,
             };
 
