@@ -3,6 +3,7 @@
     "description": "Laravel SDK for trigger-engage — event-driven messaging automations (open-source Customer.io alternative).",
     "type": "library",
     "license": "MIT",
+    "homepage": "https://triggerengage.com",
     "keywords": ["laravel", "trigger-engage", "messaging", "automation", "customer-io"],
     "require": {
         "php": "^8.2",
