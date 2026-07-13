@@ -6,6 +6,10 @@ drag-and-drop automations turn them into email, SMS, and push messages.
 Fail-open by design: SDK calls never throw into your application code — a
 trigger-engage outage can't break your signup or payment flows.
 
+Part of **[TriggerEngage](https://triggerengage.com)**, open-source lifecycle messaging for
+Laravel. New to event-driven messaging? Start with [how to send event-based emails in
+Laravel](https://triggerengage.com/blog/event-based-emails-laravel.html).
+
 ## Install
 
 ```bash
@@ -94,3 +98,8 @@ $fake->assertEventSentTimes('customer_sign_up', 1);
 $fake->assertEventNotSent('wallet_funded');
 $fake->assertNothingSent();
 ```
+
+## Learn more
+
+- **Website:** [triggerengage.com](https://triggerengage.com)
+- **Guides:** [event-based emails in Laravel](https://triggerengage.com/blog/event-based-emails-laravel.html) · [building a notification system in Laravel](https://triggerengage.com/blog/notification-system-laravel.html)
